@@ -18,4 +18,11 @@ Zbiory liczb są listami elementów typu `int`.
 
 Na wejściu dostajemy zbiór liczb oraz poszukiwaną liczbę.
 
-Na wyjściu dostajemy dowolny podzbiór sumujący się do poszukiwanej liczby.
+Na wyjściu dostajemy dowolny podzbiór sumujący się do poszukiwanej liczby lub pusty zbiór `[]`
+
+## Określenie warunków akceptacji
+
+By sprawdzić poprawność rozwiązania problemu wystarczy wykonać dwa kroki:
+
+1. Sprawdzić czy suma liczb podzbioru równa się poszukiwanej liczbie
+2. Sprawdzić czy wszystkie liczby z podzbioru należą do zbioru liczb
