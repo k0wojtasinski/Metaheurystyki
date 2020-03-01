@@ -2,7 +2,8 @@
 
 ## Treść problemu
 
-Mamy n-elementowy zbiór liczb całkowitych, czy istnieje jego podzbiór sumujący się do x?
+Mamy n-elementowy zbiór liczb całkowitych, podaj dowolny niezerowy podzbiór liczb sumujący się do x (jeżeli istnieje)
+
 
 ## Przykład
 ```
@@ -15,5 +16,6 @@ Dla zbioru [-1,-2,-3,-4] nie możemy stworzyć podzbioru sumującego się do 0
 
 Zbiory liczb są listami elementów typu `int`.
 
-Na wejściu dostajemy zbiór liczb oraz poszukiwaną liczbę
-Na wyjściu dostajemy True, False, wartość typu `bool`
+Na wejściu dostajemy zbiór liczb oraz poszukiwaną liczbę.
+
+Na wyjściu dostajemy dowolny podzbiór sumujący się do poszukiwanej liczby.
