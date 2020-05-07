@@ -8,7 +8,7 @@ import logging
 import time
 from typing import List, Optional, Union
 
-FORMAT = "%(msg)s"
+FORMAT = "%(asctime)s %(msg)s"
 
 logging.basicConfig(format=FORMAT)
 logger = logging.getLogger("Problem")
@@ -154,9 +154,11 @@ class BruteforceSumOfSubsetProblem(Problem):
         super().__init__(data)
         self.set = self.data["set"]
         self.number = self.data["number"]
+        self.attempts = 0
 
     def solve(self, verbose=False) -> Optional[SumOfSubsetSolution]:
         """ method to solve SumOfSubsetProblem using bruteforce """
+        logger.info(f"Trying to solve {self}")
         logger.info("Running brute-force")
 
         if verbose:
@@ -168,18 +170,18 @@ class BruteforceSumOfSubsetProblem(Problem):
 
             # trying all the combinations from set, of size i
             for combination in itertools.combinations(self.set, i):
-
+                self.attempts += 1
                 solution = SumOfSubsetSolution({"subset": combination,}, problem=self)
 
                 if verbose:
                     logger.info(solution)
 
                 if solution.is_correct():
-                    logger.info(f"Found solution (time={time.time() - start_time})")
+                    logger.info(f"Found solution ({solution}) (time={time.time() - start_time}, attempts={self.attempts})")
                     return solution
 
         end_time = time.time() - start_time
 
-        logger.warn(f"Solution cannot be found (time={end_time})")
+        logger.warn(f"Solution cannot be found (time={end_time}, attempts={self.attempts})")
 
         return None

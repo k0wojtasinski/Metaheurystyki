@@ -12,10 +12,12 @@ def cli():
 @cli.command()
 @click.option("--set", default=10, help="Size of set", prompt="Size of set")
 @click.option("--subset", default=5, help="Size of subset", prompt="Size of subset")
-def random(set, subset):
+@click.option("--verbose", default=False, help="Verbose mode")
+def random(set, subset, verbose):
+    """ command to solve problem created randomly """
     problem_with_solution = generate_problem_with_solution(set, subset)
     problem = BruteforceSumOfSubsetProblem(problem_with_solution["problem"])
-    print(problem.solve())
+    problem.solve(verbose)
 
 
 @cli.command()
@@ -25,10 +27,16 @@ def random(set, subset):
     prompt="Path to JSON file with problem",
     required=True,
 )
-def from_file(path):
+@click.option("--verbose", default=False, help="Verbose mode")
+def from_file(path, verbose):
+    """ command to solve problem/problems imported from json file """
     problem = BruteforceSumOfSubsetProblem.from_json(path)
-    print(problem.solve())
-
+    
+    if isinstance(problem, list):
+        for single_problem in problem:
+            single_problem.solve(verbose)
+    else:
+        problem.solve(verbose)
 
 if __name__ == "__main__":
     cli()

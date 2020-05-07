@@ -26,3 +26,24 @@ By sprawdzić poprawność rozwiązania problemu wystarczy wykonać dwa kroki:
 
 1. Sprawdzić czy suma liczb podzbioru równa się poszukiwanej liczbie
 2. Sprawdzić czy wszystkie liczby z podzbioru należą do zbioru liczb
+
+## Wymagania
+Program jest napisany dla Pythona 3.7+.
+By zainstalować wymagane zależności należy wykonać:
+```bash
+pip install -r requirements.txt
+```
+
+## Jak uruchomić
+
+Program można uruchomić na dwa sposoby
+
+1. Uruchamiając testy jednostkowe:
+```bash
+pytest
+```
+2. Uruchamiając testy manualne:
+```bash
+python manual.py
+```
+uruchomienie ich bez dodatkowych parametrów wyświetli ekran pomocy
