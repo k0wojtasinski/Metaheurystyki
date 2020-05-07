@@ -6,6 +6,7 @@ import itertools
 import logging
 
 import time
+from typing import List, Optional, Union
 
 FORMAT = "%(msg)s"
 
@@ -19,20 +20,21 @@ class Solution(abc.ABC):
         provides comparison, is_correct and __str__
         goal method needs to be implemented
     """
-    def __init__(self, data: dict):
+
+    def __init__(self, data: dict, problem: "Problem"):
         self.data = data
 
     def __eq__(self, solution: "Solution"):
-        if isinstance(solution, self):
+        if isinstance(solution, self.__class__):
             return self.data == solution.data
 
     def __lt__(self, solution: "Solution"):
         if self.goal() < 0 and solution.goal() < 0:
             return False
-        
+
         if self.goal() < 0:
             return False
-        
+
         if solution.goal() < 0:
             return True
 
@@ -41,10 +43,10 @@ class Solution(abc.ABC):
     def __gt__(self, solution: "Solution"):
         if self.goal() < 0 and solution.goal() < 0:
             return False
-        
+
         if self.goal() < 0:
             return True
-        
+
         if solution.goal() < 0:
             return False
 
@@ -52,7 +54,7 @@ class Solution(abc.ABC):
 
     @abc.abstractmethod
     def goal(self) -> int:
-        pass
+        ...
 
     def is_correct(self) -> bool:
         return self.goal() == 0
@@ -64,30 +66,33 @@ class Solution(abc.ABC):
         return str(self)
 
 
-class Problem:
+class Problem(abc.ABC):
     def __init__(self, data: dict):
         self.data = data
         self.solutions = []
 
-    def clear_solution(self):
-        self.solutions = []
+    @abc.abstractmethod
+    def solve(self) -> Optional[Solution]:
+        ...
 
     @classmethod
-    def from_json(cls, file_path: str):
-        """ method to import problems' data from JSON file
+    def from_json(cls, file_path: str) -> Union["Problem", List["Problem"]]:
+        """ method to import problem data from JSON file
             each problem is defined in a single dict
-            it returns list of Problems based on input data
+            it returns Problem or list of Problems based on input data
         """
         with open(file_path) as input_file:
-            content = json.load(input_file)
-            results = []
-            for item in content:
-                results.append(cls(item))
+            data = json.load(input_file)
+            if isinstance(data, dict):
+                return cls(data)
+            elif isinstance(data, list):
+                return [cls(item) for item in data]
+            else:
+                raise TypeError("Expected list or dict")
 
-        logger.info(
-            f"Loading input from json file (file_name: {file_path}, content: {content})"
-        )
-        return results
+    def export_to_json(self, file_path: str):
+        with open(file_path, "w") as output_file:
+            output_file.write(json.dumps(self.data))
 
     def __str__(self):
         return f"{self.__class__.__name__} (data={self.data})"
@@ -124,15 +129,14 @@ class Problem:
 
 
 class SumOfSubsetSolution(Solution):
-    def __init__(self, data):
-        super().__init__(data)
-        self.set = data["set"]
+    def __init__(self, data, problem):
+        super().__init__(data, problem)
         self.subset = data["subset"]
-        self.number = data["number"]
-        self.tries = self.data.get("tries", 0)
-        self.time = self.data.get("time", 0)
+        self.set = problem.set
+        self.number = problem.number
 
     def goal(self) -> int:
+        """ returns goal function value for SumOfSubsetSolution """
         if self.check_correctness(self.set, self.subset, self.number):
             return abs(sum(self.subset) - self.number)
 
@@ -140,45 +144,42 @@ class SumOfSubsetSolution(Solution):
 
     @staticmethod
     def check_correctness(set_of_numbers, subset, number) -> bool:
+        """ check correctness of solution """
         return all([number in set_of_numbers for number in subset])
 
 
-class SumOfSubsetProblem(Problem):
+class BruteforceSumOfSubsetProblem(Problem):
+    """ SumOfSubsetProblem with bruteforce solution method """
     def __init__(self, data):
         super().__init__(data)
         self.set = self.data["set"]
         self.number = self.data["number"]
 
-    def bruteforce(self):
+    def solve(self, verbose=False) -> Optional[SumOfSubsetSolution]:
+        """ method to solve SumOfSubsetProblem using bruteforce """
         logger.info("Running brute-force")
+
+        if verbose:
+            logger.info("Activated verbose mode")
+
         start_time = time.time()
 
         for i in range(1, len(self.set) + 1):
 
+            # trying all the combinations from set, of size i
             for combination in itertools.combinations(self.set, i):
 
-                solution = SumOfSubsetSolution(
-                    {
-                        "number": self.number,
-                        "subset": combination,
-                        "set": self.set,
-                        "tries": len(self.solutions),
-                        "time": time.time() - start_time,
-                    }
-                )
-                solution.data["tries"] = len(self.solutions)
+                solution = SumOfSubsetSolution({"subset": combination,}, problem=self)
 
-                self.solutions.append(solution)
+                if verbose:
+                    logger.info(solution)
 
                 if solution.is_correct():
-                    logger.info(
-                        f"Found solution (time={solution.time}, tries={solution.tries})"
-                    )
+                    logger.info(f"Found solution (time={time.time() - start_time})")
                     return solution
 
         end_time = time.time() - start_time
-        logger.warn(
-            f"Solution cannot be found (time={end_time}, tries={len(self.solutions)})"
-        )
 
-        return []
+        logger.warn(f"Solution cannot be found (time={end_time})")
+
+        return None
