@@ -178,6 +178,7 @@ class BruteforceSumOfSubsetProblem(Problem):
 
                 if solution.is_correct():
                     logger.info(f"Found solution ({solution}) (time={time.time() - start_time}, attempts={self.attempts})")
+                    self.solutions.append(solution)
                     return solution
 
         end_time = time.time() - start_time
