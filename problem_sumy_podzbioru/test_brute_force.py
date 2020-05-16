@@ -3,7 +3,10 @@ import os
 
 import pytest
 
-from problem_sumy_podzbioru.problem import BruteforceSumOfSubsetProblem
+from problem_sumy_podzbioru.problem import (
+    SumOfSubsetProblem,
+    BruteforceSumOfSubsetSolver,
+)
 from problem_sumy_podzbioru.utilities import generate_problem_with_solution
 
 # probably less than second
@@ -18,10 +21,11 @@ def test_bruteforce_with_short_problems(length_of_set, length_of_subset):
     problem_with_solution = generate_problem_with_solution(
         length_of_set, length_of_subset
     )
-    problem = BruteforceSumOfSubsetProblem(problem_with_solution["problem"])
-    solution = problem.solve()
+    problem = SumOfSubsetProblem(problem_with_solution["problem"])
+    solver = BruteforceSumOfSubsetSolver(problem)
+    solution = solver.solve(True)
 
-    assert solution
+    assert solution.goal() == 0
 
 
 @pytest.mark.parametrize("length_of_set, length_of_subset", MEDIUM_PROBLEM_LENGTHS)
@@ -29,7 +33,8 @@ def test_bruteforce_with_medium_problems(length_of_set, length_of_subset):
     problem_with_solution = generate_problem_with_solution(
         length_of_set, length_of_subset
     )
-    problem = BruteforceSumOfSubsetProblem(problem_with_solution["problem"])
-    solution = problem.solve()
+    problem = SumOfSubsetProblem(problem_with_solution["problem"])
+    solver = BruteforceSumOfSubsetSolver(problem)
+    solution = solver.solve(True)
 
-    assert solution
+    assert solution.goal() == 0

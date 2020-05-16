@@ -69,11 +69,6 @@ class Solution(abc.ABC):
 class Problem(abc.ABC):
     def __init__(self, data: dict):
         self.data = data
-        self.solutions = []
-
-    @abc.abstractmethod
-    def solve(self) -> Optional[Solution]:
-        ...
 
     @classmethod
     def from_json(cls, file_path: str) -> Union["Problem", List["Problem"]]:
@@ -99,6 +94,17 @@ class Problem(abc.ABC):
 
     def __repr__(self):
         return str(self)
+
+
+class Solver(abc.ABC):
+    def __init__(self, problem: Problem):
+        self.problem = problem
+        self.report = {"attempts": 0, "time": 0}
+        self.solutions = []
+
+    @abc.abstractmethod
+    def solve(self) -> Solution:
+        ...
 
     @staticmethod
     def export_solutions_to_json(solutions: list, file_path):
@@ -148,17 +154,10 @@ class SumOfSubsetSolution(Solution):
         return all([number in set_of_numbers for number in subset])
 
 
-class BruteforceSumOfSubsetProblem(Problem):
-    """ SumOfSubsetProblem with bruteforce solution method """
-    def __init__(self, data):
-        super().__init__(data)
-        self.set = self.data["set"]
-        self.number = self.data["number"]
-        self.attempts = 0
-
-    def solve(self, verbose=False) -> Optional[SumOfSubsetSolution]:
-        """ method to solve SumOfSubsetProblem using bruteforce """
-        logger.info(f"Trying to solve {self}")
+class BruteforceSumOfSubsetSolver(Solver):
+    def solve(self, verbose=False):
+        """ class to solve SumOfSubsetProblem using bruteforce """
+        logger.info(f"Trying to solve {self.problem}")
         logger.info("Running brute-force")
 
         if verbose:
@@ -166,23 +165,37 @@ class BruteforceSumOfSubsetProblem(Problem):
 
         start_time = time.time()
 
-        for i in range(1, len(self.set) + 1):
+        for i in range(1, len(self.problem.set) + 1):
 
             # trying all the combinations from set, of size i
-            for combination in itertools.combinations(self.set, i):
-                self.attempts += 1
-                solution = SumOfSubsetSolution({"subset": combination,}, problem=self)
+            for combination in itertools.combinations(self.problem.set, i):
+                self.report["attempts"] += 1
+                solution = SumOfSubsetSolution(
+                    {"subset": combination,}, problem=self.problem
+                )
 
                 if verbose:
                     logger.info(solution)
 
                 if solution.is_correct():
-                    logger.info(f"Found solution ({solution}) (time={time.time() - start_time}, attempts={self.attempts})")
+                    self.report["time"] = time.time() - start_time
+                    logger.info(
+                        f"Found solution ({solution}) (time={self.report['time']}, attempts={self.report['attempts']})"
+                    )
                     self.solutions.append(solution)
                     return solution
 
-        end_time = time.time() - start_time
+        self.report["time"] = time.time() - start_time
 
-        logger.warn(f"Solution cannot be found (time={end_time}, attempts={self.attempts})")
+        logger.warn(
+            f"Solution cannot be found (time={self.report['time']}, attempts={self.report['attempts']})"
+        )
 
         return None
+
+
+class SumOfSubsetProblem(Problem):
+    def __init__(self, data):
+        super().__init__(data)
+        self.set = self.data["set"]
+        self.number = self.data["number"]
