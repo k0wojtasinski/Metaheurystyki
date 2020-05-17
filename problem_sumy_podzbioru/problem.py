@@ -1,21 +1,20 @@
 import abc
-
-import json
-
+from collections import UserDict
 import itertools
+import json
 import logging
-
+import random
 import time
 from typing import List, Optional, Union
 
-FORMAT = "%(asctime)s %(msg)s"
+FORMAT = "%(levelname)s | %(asctime)s | %(funcName)s | %(msg)s"
 
 logging.basicConfig(format=FORMAT)
 logger = logging.getLogger("Problem")
 logger.setLevel("INFO")
 
 
-class Solution(abc.ABC):
+class Solution(abc.ABC, UserDict):
     """ abstract class representing single solution
         provides comparison, is_correct and __str__
         goal method needs to be implemented
@@ -33,24 +32,24 @@ class Solution(abc.ABC):
             return False
 
         if self.goal() < 0:
-            return False
-
-        if solution.goal() < 0:
-            return True
-
-        return self.goal() < solution.goal()
-
-    def __gt__(self, solution: "Solution"):
-        if self.goal() < 0 and solution.goal() < 0:
-            return False
-
-        if self.goal() < 0:
             return True
 
         if solution.goal() < 0:
             return False
 
         return self.goal() > solution.goal()
+
+    def __gt__(self, solution: "Solution"):
+        if self.goal() < 0 and solution.goal() < 0:
+            return False
+
+        if self.goal() < 0:
+            return False
+
+        if solution.goal() < 0:
+            return True
+
+        return self.goal() < solution.goal()
 
     @abc.abstractmethod
     def goal(self) -> int:
@@ -66,9 +65,13 @@ class Solution(abc.ABC):
         return str(self)
 
 
-class Problem(abc.ABC):
+class Problem(abc.ABC, UserDict):
     def __init__(self, data: dict):
         self.data = data
+
+    @abc.abstractmethod
+    def generate_random_solution(self) -> Solution:
+        ...
 
     @classmethod
     def from_json(cls, file_path: str) -> Union["Problem", List["Problem"]]:
@@ -184,7 +187,6 @@ class BruteforceSumOfSubsetSolver(Solver):
                     )
                     self.solutions.append(solution)
                     return solution
-
         self.report["time"] = time.time() - start_time
 
         logger.warn(
@@ -199,3 +201,14 @@ class SumOfSubsetProblem(Problem):
         super().__init__(data)
         self.set = self.data["set"]
         self.number = self.data["number"]
+
+    def generate_random_solution(self, size_of_subset=None) -> SumOfSubsetSolution:
+        if not size_of_subset or size_of_subset > len(self.set) or size_of_subset < 0:
+            size_of_subset = random.randint(1, len(self.set))
+            logger.warn(
+                f'"size_of_subset" is not provided or it is not correct, set to {size_of_subset}'
+            )
+
+        return SumOfSubsetSolution(
+            data={"subset": random.sample(self.set, size_of_subset)}, problem=self
+        )
