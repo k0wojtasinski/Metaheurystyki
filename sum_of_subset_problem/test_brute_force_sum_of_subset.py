@@ -3,12 +3,12 @@ import os
 
 import pytest
 
-from problem_sumy_podzbioru.problem import (
+from sum_of_subset_problem.problem import (
     SumOfSubsetSolution,
     SumOfSubsetProblem,
     BruteforceSumOfSubsetSolver,
 )
-from problem_sumy_podzbioru.utilities import generate_problem_with_solution
+from sum_of_subset_problem.utilities import generate_problem_with_solution
 
 # probably less than second
 SHORT_PROBLEM_LENGTHS = [(10, 1), (100, 1), (1000, 1), (10, 2), (100, 2)]
@@ -24,7 +24,7 @@ def test_bruteforce_with_short_problems(length_of_set, length_of_subset):
     )
     problem = SumOfSubsetProblem(problem_with_solution["problem"])
     solver = BruteforceSumOfSubsetSolver(problem)
-    solution = solver.solve(True)
+    solution = solver.solve(verbose=True)
 
     assert solution.goal() == 0
 
@@ -36,7 +36,7 @@ def test_bruteforce_with_medium_problems(length_of_set, length_of_subset):
     )
     problem = SumOfSubsetProblem(problem_with_solution["problem"])
     solver = BruteforceSumOfSubsetSolver(problem)
-    solution = solver.solve(True)
+    solution = solver.solve(verbose=True)
 
     assert solution.goal() == 0
 

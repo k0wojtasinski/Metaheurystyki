@@ -2,17 +2,12 @@ import os
 
 import click
 
-from utilities import generate_problem_with_solution
-from problem import (
+from sum_of_subset_problem.utilities import generate_problem_with_solution
+from sum_of_subset_problem.problem import (
     SumOfSubsetProblem,
     BruteforceSumOfSubsetSolver,
     ClimbingSumOfSubsetSolver,
 )
-
-SOLVERS = {
-    "bruteforce": BruteforceSumOfSubsetSolver,
-    "climbing": ClimbingSumOfSubsetSolver,
-}
 
 
 @click.group()
@@ -24,8 +19,8 @@ def cli():
 @click.option(
     "--method",
     default="bruteforce",
-    help="Method to solve problem (bruteforce, climbing)",
-    prompt="Method to solve problem (bruteforce, climbing)",
+    help="Method to solve problem (bruteforce, climbing, sa)",
+    prompt="Method to solve problem (bruteforce, climbing, sa)",
 )
 @click.option("--set", default=10, help="Size of set", prompt="Size of set")
 @click.option("--subset", default=5, help="Size of subset", prompt="Size of subset")
@@ -35,24 +30,24 @@ def cli():
     help="Path to output JSON file",
     prompt="Path to output JSON file",
 )
-@click.option("--verbose", default=False, help="Verbose mode")
+@click.option("--verbose", default=False, help="Verbose mode", prompt="Verbose mode")
 def random(method, set, subset, to_file, verbose):
     """ command to solve problem created randomly """
     problem_with_solution = generate_problem_with_solution(set, subset)
     problem = SumOfSubsetProblem(problem_with_solution["problem"])
-    solver = SOLVERS.get(method)(problem)
-    solver.solve(verbose)
+    solver = problem.solvers.get(method)(problem)
+    solution = solver.solve(verbose=verbose)
 
     if to_file:
-        solver.export_correct_solutions_to_json(os.path.join(to_file, "random.json"))
+        solution.export_to_json(to_file)
 
 
 @cli.command()
 @click.option(
     "--method",
     default="bruteforce",
-    help="Method to solve problem (bruteforce, climbing)",
-    prompt="Method to solve problem (bruteforce, climbing)",
+    help="Method to solve problem (bruteforce, climbing, sa)",
+    prompt="Method to solve problem (bruteforce, climbing, sa)",
 )
 @click.option(
     "--path",
@@ -66,27 +61,25 @@ def random(method, set, subset, to_file, verbose):
     help="Path to output JSON file",
     prompt="Path to output JSON file",
 )
-@click.option("--verbose", default=False, help="Verbose mode")
+@click.option("--verbose", default=False, help="Verbose mode", prompt="Verbose mode")
 def from_file(method, path, to_file, verbose):
     """ command to solve problem/problems imported from json file """
     problem = SumOfSubsetProblem.from_json(path)
 
     if isinstance(problem, list):
         for idx, single_problem in enumerate(problem):
-            solver = SOLVERS.get(method)(single_problem)
-            solver.solve(verbose)
+            solver = single_problem.solvers.get(method)(single_problem)
+            solution = solver.solve(verbose=verbose)
 
             if to_file:
-                solver.export_correct_solutions_to_json(
-                    os.path.join(to_file, f"from_file{idx}.json")
-                )
+                solution.export_to_json(os.path.join(to_file, f"from_file{idx}.json"))
 
     else:
-        solver = SOLVERS.get(method)(problem)
-        solver.solve(verbose)
+        solver = problem.solvers.get(method)(problem)
+        solution = solver.solve(verbose=verbose)
 
         if to_file:
-            solver.export_all_solutions_to_json(os.path.join(to_file, "from_file.json"))
+            solution.export_json(os.path.join(to_file, "from_file.json"))
 
 
 if __name__ == "__main__":
