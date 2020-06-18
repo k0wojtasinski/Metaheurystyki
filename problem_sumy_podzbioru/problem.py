@@ -5,6 +5,7 @@ import json
 import logging
 import random
 import time
+import math
 from typing import List, Optional, Union
 
 FORMAT = "%(levelname)s | %(asctime)s | %(funcName)s | %(msg)s"
@@ -105,6 +106,7 @@ class Problem(abc.ABC, UserDict):
 
 class Solver(abc.ABC):
     def __init__(self, problem: Problem):
+        self.name = self.__class__.__name__
         self.problem = problem
         self.report = {"attempts": 0, "time": 0}
         self.solutions = []
@@ -118,6 +120,26 @@ class Solver(abc.ABC):
 
     def set_time(self, start_time):
         self.report["time"] = time.time() - start_time
+
+    def found_correct_solution(self, solution):
+        logger.info(
+            f"Found correct solution ({solution}) (time={self.report['time']}, attempts={self.report['attempts']})"
+        )
+
+    def did_not_find_correct_solution(self, solution):
+        logger.info(
+            f"Did not find correct solution ({solution}) (time={self.report['time']}, attempts={self.report['attempts']})"
+        )
+
+    def log_solution(self, solution):
+        if solution.is_correct():
+            self.found_correct_solution(solution)
+        else:
+            self.did_not_find_correct_solution(solution)
+
+    def log_welcome(self):
+        logger.info(f"Running {self.__class__.__name__}")
+        logger.info(f"Trying to solve {self.problem}")
 
     @staticmethod
     def export_solutions_to_json(solutions: list, file_path):
@@ -168,15 +190,19 @@ class SumOfSubsetSolution(Solution):
 
 
 class BruteforceSumOfSubsetSolver(Solver):
-    def solve(self, verbose=False):
+    def solve(self, verbose=False, **kwargs):
         """ class to solve SumOfSubsetProblem using bruteforce """
+        self.log_welcome()
+
+        limit = kwargs.get("limit")
+        verbose = kwargs.get("verbose", False)
         
-        logger.info(f"Trying to solve {self.problem}")
-        logger.info("Running brute-force")
+        if limit:
+            logger.info(f"Set limit to {limit}")
 
-        if verbose:
-            logger.info("Activated verbose mode")
+        logger.info(f"Set verbose to {verbose} (default=False)")
 
+        
         start_time = time.time()
 
         for i in range(1, len(self.problem.set) + 1):
@@ -193,14 +219,19 @@ class BruteforceSumOfSubsetSolver(Solver):
 
                 if solution.is_correct():
                     self.set_time(start_time)
-                    logger.info(
-                        f"Found solution ({solution}) (time={self.report['time']}, attempts={self.report['attempts']})"
-                    )
+                    self.log_solution(solution)
                     self.solutions.append(solution)
                     return solution
+
+                if limit and self.report["attempts"] == limit:
+                    self.set_time(start_time)
+                    logger.warning(f"Runned out of tries (limit={limit})")
+                    self.log_solution(solution)
+                    return solution
+
         self.set_time(start_time)
 
-        logger.warn(
+        logger.warning(
             f"Solution cannot be found (time={self.report['time']}, attempts={self.report['attempts']})"
         )
 
@@ -208,47 +239,96 @@ class BruteforceSumOfSubsetSolver(Solver):
 
 
 class ClimbingSumOfSubsetSolver(Solver):
-    DEFAULT_LIMIT = 10000
+    DEFAULT_LIMIT = 1000000
 
-    def solve(self, verbose=False, **kwargs):
+    def solve(self, **kwargs):
         """ class to solve SumOfSubsetProblem using bruteforce """
-        logger.info(f"Trying to solve {self.problem}")
-        logger.info("Running climbing")
+        self.log_welcome()
 
         limit = kwargs.get("limit", self.DEFAULT_LIMIT)
-        
+        verbose = kwargs.get("verbose", False)
+
         logger.info(f"Set limit to {limit} (default={self.DEFAULT_LIMIT})")
-        
-        random_solution = self.problem.generate_random_solution()
+        logger.info(f"Set verbose to {verbose} (default=False)")
 
         start_time = time.time()
+        random_solution = self.problem.generate_random_solution()
 
+        self.add_attempt()
+
+        if random_solution.is_correct():
+            self.set_time(start_time)
+            self.log_solution(random_solution)
+            return random_solution
+
+        for _ in range(limit):
+            self.add_attempt()
+            close_neighbor = self.problem.find_close_neighbor(random_solution)
+
+            logger.info(close_neighbor)
+
+            if close_neighbor.is_correct():
+                self.set_time(start_time)
+                self.log_solution(close_neighbor)
+                return close_neighbor
+
+            if close_neighbor > random_solution:
+                random_solution = close_neighbor
+
+        self.set_time(start_time)
+
+        self.log_solution(random_solution)
+        return random_solution
+
+
+class SimulatedAnnealingSumOfSubsetSolver(Solver):
+    DEFAULT_LIMIT = 1000000
+
+    def solve(self, verbose=False, **kwargs):
+        self.log_welcome()
+
+        limit = kwargs.get("limit", self.DEFAULT_LIMIT)
+        verbose = kwargs.get("verbose", False)
+        temperature = kwargs.get("temperature", lambda i: 1 / i)
+
+        logger.info(f"Set limit to {limit} (default={self.DEFAULT_LIMIT})")
+        logger.info(f"Set verbose to {verbose} (default=False)")
+
+        limit = kwargs.get("limit", self.DEFAULT_LIMIT)
+
+        start_time = time.time()
+        random_solution = self.problem.generate_random_solution()
         self.add_attempt()
 
         if random_solution.is_correct():
             self.set_time(start_time)
             return random_solution
 
-        for _ in range(limit):
+        for _ in range(1, limit):
             self.add_attempt()
-            another_solution = self.problem.find_close_neighbor(random_solution)
+            close_neighbor = self.problem.find_close_neighbor(random_solution)
 
-            if another_solution.is_correct():
+            if close_neighbor.is_correct():
                 self.set_time(start_time)
-                logger.info(
-                    f"Found solution ({another_solution}) (time={self.report['time']}, attempts={self.report['attempts']})"
+                self.log_solution(close_neighbor)
+                return close_neighbor
+
+            if close_neighbor > random_solution:
+                random_solution = close_neighbor
+            else:
+                i = self.report.get("attempts")
+                random_number = random.random()
+                sa_condition = math.exp(
+                    -(
+                        abs(close_neighbor.goal() - random_solution.goal())
+                        / temperature(i)
+                    )
                 )
-                return another_solution
 
-            if another_solution > random_solution:
-                random_solution = another_solution
+                if random_number < sa_condition:
+                    random_solution = close_neighbor
 
-        self.set_time(start_time)
-
-        logger.info(
-            f"Found solution ({random_solution}) (time={self.report['time']}, attempts={self.report['attempts']})"
-        )
-
+        self.log_solution(random_solution)
         return random_solution
 
 
@@ -261,8 +341,8 @@ class SumOfSubsetProblem(Problem):
     def generate_random_solution(self, size_of_subset=None) -> SumOfSubsetSolution:
         if not size_of_subset or size_of_subset > len(self.set) or size_of_subset < 0:
             size_of_subset = random.randint(1, len(self.set))
-            
-            logger.warn(
+
+            logger.warning(
                 f'"size_of_subset" is not provided or it is not correct, set to {size_of_subset}'
             )
 
