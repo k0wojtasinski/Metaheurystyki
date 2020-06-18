@@ -73,6 +73,10 @@ class Problem(abc.ABC, UserDict):
     def generate_random_solution(self) -> Solution:
         ...
 
+    @abc.abstractmethod
+    def find_close_neighbor(self, solution: Solution) -> Solution:
+        ...
+
     @classmethod
     def from_json(cls, file_path: str) -> Union["Problem", List["Problem"]]:
         """ method to import problem data from JSON file
@@ -108,6 +112,12 @@ class Solver(abc.ABC):
     @abc.abstractmethod
     def solve(self) -> Solution:
         ...
+
+    def add_attempt(self):
+        self.report["attempts"] += 1
+
+    def set_time(self, start_time):
+        self.report["time"] = time.time() - start_time
 
     @staticmethod
     def export_solutions_to_json(solutions: list, file_path):
@@ -160,6 +170,7 @@ class SumOfSubsetSolution(Solution):
 class BruteforceSumOfSubsetSolver(Solver):
     def solve(self, verbose=False):
         """ class to solve SumOfSubsetProblem using bruteforce """
+        
         logger.info(f"Trying to solve {self.problem}")
         logger.info("Running brute-force")
 
@@ -172,7 +183,7 @@ class BruteforceSumOfSubsetSolver(Solver):
 
             # trying all the combinations from set, of size i
             for combination in itertools.combinations(self.problem.set, i):
-                self.report["attempts"] += 1
+                self.add_attempt()
                 solution = SumOfSubsetSolution(
                     {"subset": combination,}, problem=self.problem
                 )
@@ -181,19 +192,64 @@ class BruteforceSumOfSubsetSolver(Solver):
                     logger.info(solution)
 
                 if solution.is_correct():
-                    self.report["time"] = time.time() - start_time
+                    self.set_time(start_time)
                     logger.info(
                         f"Found solution ({solution}) (time={self.report['time']}, attempts={self.report['attempts']})"
                     )
                     self.solutions.append(solution)
                     return solution
-        self.report["time"] = time.time() - start_time
+        self.set_time(start_time)
 
         logger.warn(
             f"Solution cannot be found (time={self.report['time']}, attempts={self.report['attempts']})"
         )
 
         return None
+
+
+class ClimbingSumOfSubsetSolver(Solver):
+    DEFAULT_LIMIT = 10000
+
+    def solve(self, verbose=False, **kwargs):
+        """ class to solve SumOfSubsetProblem using bruteforce """
+        logger.info(f"Trying to solve {self.problem}")
+        logger.info("Running climbing")
+
+        limit = kwargs.get("limit", self.DEFAULT_LIMIT)
+        
+        logger.info(f"Set limit to {limit} (default={self.DEFAULT_LIMIT})")
+        
+        random_solution = self.problem.generate_random_solution()
+
+        start_time = time.time()
+
+        self.add_attempt()
+
+        if random_solution.is_correct():
+            self.set_time(start_time)
+            return random_solution
+
+        for _ in range(limit):
+            self.add_attempt()
+            another_solution = self.problem.find_close_neighbor(random_solution)
+
+            if another_solution.is_correct():
+                self.set_time(start_time)
+                logger.info(
+                    f"Found solution ({another_solution}) (time={self.report['time']}, attempts={self.report['attempts']})"
+                )
+                return another_solution
+
+            if another_solution > random_solution:
+                random_solution = another_solution
+
+        self.set_time(start_time)
+
+        logger.info(
+            f"Found solution ({random_solution}) (time={self.report['time']}, attempts={self.report['attempts']})"
+        )
+
+        return random_solution
 
 
 class SumOfSubsetProblem(Problem):
@@ -205,6 +261,7 @@ class SumOfSubsetProblem(Problem):
     def generate_random_solution(self, size_of_subset=None) -> SumOfSubsetSolution:
         if not size_of_subset or size_of_subset > len(self.set) or size_of_subset < 0:
             size_of_subset = random.randint(1, len(self.set))
+            
             logger.warn(
                 f'"size_of_subset" is not provided or it is not correct, set to {size_of_subset}'
             )
@@ -212,3 +269,22 @@ class SumOfSubsetProblem(Problem):
         return SumOfSubsetSolution(
             data={"subset": random.sample(self.set, size_of_subset)}, problem=self
         )
+
+    def find_close_neighbor(self, solution: SumOfSubsetSolution):
+        copy_of_data = solution.data.copy()
+
+        first_element, second_element = random.choices(self.set, k=2)
+
+        if first_element in solution.subset:
+            copy_of_data.get("subset").remove(first_element)
+        else:
+            copy_of_data.get("subset").append(first_element)
+
+        if second_element in solution.subset:
+            if random.randint(1, 2) == 1:
+                copy_of_data.get("subset").remove(second_element)
+        else:
+            if random.randint(1, 2) == 1:
+                copy_of_data.get("subset").append(second_element)
+
+        return SumOfSubsetSolution(copy_of_data, self)

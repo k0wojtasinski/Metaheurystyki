@@ -3,9 +3,16 @@ import os
 import click
 
 from utilities import generate_problem_with_solution
-from problem import SumOfSubsetProblem, BruteforceSumOfSubsetSolver
+from problem import (
+    SumOfSubsetProblem,
+    BruteforceSumOfSubsetSolver,
+    ClimbingSumOfSubsetSolver,
+)
 
-SOLVERS = {"bruteforce": BruteforceSumOfSubsetSolver}
+SOLVERS = {
+    "bruteforce": BruteforceSumOfSubsetSolver,
+    "climbing": ClimbingSumOfSubsetSolver,
+}
 
 
 @click.group()
@@ -17,8 +24,8 @@ def cli():
 @click.option(
     "--method",
     default="bruteforce",
-    help="Method to solve problem",
-    prompt="Method to solve problem",
+    help="Method to solve problem (bruteforce, climbing)",
+    prompt="Method to solve problem (bruteforce, climbing)",
 )
 @click.option("--set", default=10, help="Size of set", prompt="Size of set")
 @click.option("--subset", default=5, help="Size of subset", prompt="Size of subset")
@@ -44,8 +51,8 @@ def random(method, set, subset, to_file, verbose):
 @click.option(
     "--method",
     default="bruteforce",
-    help="Method to solve problem",
-    prompt="Method to solve problem",
+    help="Method to solve problem (bruteforce, climbing)",
+    prompt="Method to solve problem (bruteforce, climbing)",
 )
 @click.option(
     "--path",
