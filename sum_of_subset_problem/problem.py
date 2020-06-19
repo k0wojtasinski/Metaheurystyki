@@ -5,7 +5,7 @@ import math
 from typing import List, Optional, Union
 
 from sum_of_subset_problem import logger
-from sum_of_subset_problem.base import Problem, Solution, Solver
+from sum_of_subset_problem.base import Problem, Solution, Solver, Experiment
 
 
 class SumOfSubsetSolution(Solution):
@@ -32,7 +32,6 @@ class BruteforceSumOfSubsetSolver(Solver):
     def solve(self, **kwargs):
         """ class to solve SumOfSubsetProblem using bruteforce """
         self.log_welcome()
-
         limit = kwargs.get("limit")
         verbose = kwargs.get("verbose", False)
 
@@ -85,12 +84,14 @@ class ClimbingSumOfSubsetSolver(Solver):
 
         limit = kwargs.get("limit", self.DEFAULT_LIMIT)
         verbose = kwargs.get("verbose", False)
+        size = kwargs.get("size", random.randint(1, len(self.problem.set) // 2))
 
         logger.info(f"Set limit to {limit} (default={self.DEFAULT_LIMIT})")
         logger.info(f"Set verbose to {verbose} (default=False)")
+        logger.info(f"Set size to {size}")
 
         start_time = time.time()
-        random_solution = self.problem.generate_random_solution()
+        random_solution = self.problem.generate_random_solution(size)
 
         self.add_attempt()
 
@@ -122,20 +123,21 @@ class ClimbingSumOfSubsetSolver(Solver):
 class SimulatedAnnealingSumOfSubsetSolver(Solver):
     DEFAULT_LIMIT = 1000000
 
-    def solve(self, verbose=False, **kwargs):
+    def solve(self, **kwargs):
         self.log_welcome()
 
         limit = kwargs.get("limit", self.DEFAULT_LIMIT)
         verbose = kwargs.get("verbose", False)
         temperature = kwargs.get("temperature", lambda i: 1 / i)
+        size = kwargs.get("size", random.randint(1, len(self.problem.set) // 2))
 
         logger.info(f"Set limit to {limit} (default={self.DEFAULT_LIMIT})")
         logger.info(f"Set verbose to {verbose} (default=False)")
-
-        limit = kwargs.get("limit", self.DEFAULT_LIMIT)
+        logger.info(f"Set size to {size}")
 
         start_time = time.time()
-        random_solution = self.problem.generate_random_solution()
+        random_solution = self.problem.generate_random_solution(size)
+
         self.add_attempt()
 
         if random_solution.is_correct():
@@ -212,3 +214,8 @@ class SumOfSubsetProblem(Problem):
                 copy_of_data.get("subset").append(second_element)
 
         return SumOfSubsetSolution(copy_of_data, self)
+
+class SumOfSubsetExperiment(Experiment):
+    def __init__(self, data=None):
+        super().__init__(data)
+        self.problem_class = SumOfSubsetProblem

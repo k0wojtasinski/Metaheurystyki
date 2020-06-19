@@ -163,3 +163,101 @@ class Solver(abc.ABC):
             solution.data for solution in self.solutions if not solution.is_correct()
         ]
         self.export_solutions_to_json(solutions, file_path)
+
+
+class Experiment(abc.ABC, UserDict):
+    def __init__(self, data=None):
+        self.name = self.__class__.__name__
+        self.data = data or {}
+        self.data["problems"] = self.data.get("problems", [])
+        self.data["solvers"] = self.data.get("solvers", [])
+        self.data["report"] = {}
+        self.problems = []
+
+    def inspect(self):
+        mandatory_fields = [("problems", list), ("solvers", list), ("report", dict)]
+
+        for field in mandatory_fields:
+            if field[0] not in self.data:
+                raise ValueError(f"{self.name} lacks mandatory '{field[0]}' field")
+
+            item = self.data.get(field[0])
+
+            if not isinstance(item, field[1]):
+                raise TypeError(
+                    f"{self.__class__.__name__} field '{field[0]}' has type {type(item)} (expected={field[1]})"
+                )
+
+        if len(self.data["problems"]) < 1:
+            raise ValueError(
+                f"{self.__class__.__name__} needs at least one problem, none given"
+            )
+
+        if len(self.data["solvers"]) < 1:
+            raise ValueError(
+                f"{self.__class__.__name__} needs at least one solver, none given"
+            )
+
+        for solver_setup in self.data.get("solvers"):
+            solver_name = solver_setup.get("solver_name")
+
+            if not solver_name:
+                raise ValueError()
+
+    def add_solver(self, solver_name: str, params=None):
+        self.data["solvers"].append({"solver_name": solver_name, "params": params})
+        return self
+
+    def add_problem(self, problem: Problem):
+        self.data["problems"].append(problem.data)
+        return self
+
+    def _add_to_report(self, idx_of_problem: int, solver: Solver, solution: Solution):
+        if idx_of_problem not in self.data["report"]:
+            self.data["report"][idx_of_problem] = []
+        self.data["report"][idx_of_problem].append(
+            {"report": solver.report, "solution": solution.data}
+        )
+
+    def _prepare_problems(self):
+        self.problems = [
+            self.problem_class(problem_data)
+            for problem_data in self.data.get("problems")
+        ]
+
+    def export_to_json(self, file_path: str):
+        with open(file_path, "w") as output_file:
+            output_file.write(json.dumps(self.data))
+
+    def run(self):
+        self._prepare_problems()
+        for idx, problem in enumerate(self.problems):
+            for solver_item in self.data["solvers"]:
+                solver = self.problem_class.solvers.get(solver_item.get("solver_name"))(
+                    problem
+                )
+                params = solver_item.get("params", {})
+
+                logger.info(f"Working on {problem}")
+                logger.info(
+                    f"Running {solver.__class__.__name__} with params ({params})"
+                )
+
+                if params:
+                    solution = solver.solve(**params)
+                else:
+                    solution = solver.solve()
+
+                logger.info(f"Adding results to report")
+                self._add_to_report(idx, solver, solution)
+
+    @classmethod
+    def from_json(cls, file_path: str) -> "Experiment":
+        """ method to import Experiment from JSON file
+            it returns Experiment
+        """
+        with open(file_path) as input_file:
+            data = json.load(input_file)
+            if isinstance(data, dict):
+                return cls(data)
+            raise TypeError("Expected dict")
