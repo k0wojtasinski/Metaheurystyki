@@ -18,7 +18,8 @@ class Solution(abc.ABC, UserDict):
 
     def __eq__(self, solution: "Solution"):
         if isinstance(solution, self.__class__):
-            return self.data == solution.data
+            return self.goal() == solution.goal()
+        return False
 
     def __lt__(self, solution: "Solution"):
         if self.goal() < 0 and solution.goal() < 0:
@@ -117,21 +118,10 @@ class Solver(abc.ABC):
     def set_time(self, start_time):
         self.report["time"] = time.time() - start_time
 
-    def found_correct_solution(self, solution):
-        logger.info(
-            f"Found correct solution ({solution}) (time={self.report['time']}, attempts={self.report['attempts']})"
-        )
-
-    def did_not_find_correct_solution(self, solution):
-        logger.info(
-            f"Did not find correct solution ({solution}) (time={self.report['time']}, attempts={self.report['attempts']})"
-        )
-
     def log_solution(self, solution):
-        if solution.is_correct():
-            self.found_correct_solution(solution)
-        else:
-            self.did_not_find_correct_solution(solution)
+        logger.info(
+            f"Found solution ({solution}) (time={self.report['time']}, attempts={self.report['attempts']})"
+        )
 
     def log_welcome(self):
         logger.info(f"Running {self.__class__.__name__}")
@@ -174,36 +164,6 @@ class Experiment(abc.ABC, UserDict):
         self.data["report"] = {}
         self.problems = []
 
-    def inspect(self):
-        mandatory_fields = [("problems", list), ("solvers", list), ("report", dict)]
-
-        for field in mandatory_fields:
-            if field[0] not in self.data:
-                raise ValueError(f"{self.name} lacks mandatory '{field[0]}' field")
-
-            item = self.data.get(field[0])
-
-            if not isinstance(item, field[1]):
-                raise TypeError(
-                    f"{self.__class__.__name__} field '{field[0]}' has type {type(item)} (expected={field[1]})"
-                )
-
-        if len(self.data["problems"]) < 1:
-            raise ValueError(
-                f"{self.__class__.__name__} needs at least one problem, none given"
-            )
-
-        if len(self.data["solvers"]) < 1:
-            raise ValueError(
-                f"{self.__class__.__name__} needs at least one solver, none given"
-            )
-
-        for solver_setup in self.data.get("solvers"):
-            solver_name = solver_setup.get("solver_name")
-
-            if not solver_name:
-                raise ValueError()
-
     def add_solver(self, solver_name: str, params=None):
         self.data["solvers"].append({"solver_name": solver_name, "params": params})
         return self
@@ -212,11 +172,22 @@ class Experiment(abc.ABC, UserDict):
         self.data["problems"].append(problem.data)
         return self
 
-    def _add_to_report(self, idx_of_problem: int, solver: Solver, solution: Solution):
+    def _add_to_report(
+        self,
+        idx_of_problem: int,
+        idx_of_solver: int,
+        solver: Solver,
+        solution: Solution,
+    ):
         if idx_of_problem not in self.data["report"]:
             self.data["report"][idx_of_problem] = []
         self.data["report"][idx_of_problem].append(
-            {"report": solver.report, "solution": solution.data}
+            {
+                "solver_id": idx_of_solver,
+                "report": solver.report,
+                "solution": solution.data,
+                "goal": solution.goal(),
+            }
         )
 
     def _prepare_problems(self):
@@ -229,10 +200,19 @@ class Experiment(abc.ABC, UserDict):
         with open(file_path, "w") as output_file:
             output_file.write(json.dumps(self.data))
 
+    def _sort_report(self):
+        for problem_idx in self.data.get("report").keys():
+            self.data.get("report")[problem_idx].sort(
+                key=lambda report: (
+                    report.get("report").get("goal"),
+                    report.get("report").get("time"),
+                )
+            )
+
     def run(self):
         self._prepare_problems()
-        for idx, problem in enumerate(self.problems):
-            for solver_item in self.data["solvers"]:
+        for idx_of_problem, problem in enumerate(self.problems):
+            for idx_of_solver, solver_item in enumerate(self.data["solvers"]):
                 solver = self.problem_class.solvers.get(solver_item.get("solver_name"))(
                     problem
                 )
@@ -249,7 +229,9 @@ class Experiment(abc.ABC, UserDict):
                     solution = solver.solve()
 
                 logger.info(f"Adding results to report")
-                self._add_to_report(idx, solver, solution)
+                self._add_to_report(idx_of_problem, idx_of_solver, solver, solution)
+
+        self._sort_report()
 
     @classmethod
     def from_json(cls, file_path: str) -> "Experiment":

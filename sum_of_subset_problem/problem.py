@@ -47,12 +47,10 @@ class BruteforceSumOfSubsetSolver(Solver):
             # trying all the combinations from set, of size i
             for combination in itertools.combinations(self.problem.set, i):
                 self.add_attempt()
+
                 solution = SumOfSubsetSolution(
                     {"subset": combination,}, problem=self.problem
                 )
-
-                if verbose:
-                    logger.info(solution)
 
                 if solution.is_correct():
                     self.set_time(start_time)
@@ -65,6 +63,9 @@ class BruteforceSumOfSubsetSolver(Solver):
                     logger.warning(f"Runned out of tries (limit={limit})")
                     self.log_solution(solution)
                     return solution
+
+                if verbose:
+                    self.log_solution(solution)
 
         self.set_time(start_time)
 
@@ -100,11 +101,10 @@ class ClimbingSumOfSubsetSolver(Solver):
             self.log_solution(random_solution)
             return random_solution
 
-        for _ in range(limit):
+        for _ in range(1, limit):
             self.add_attempt()
-            close_neighbor = self.problem.find_close_neighbor(random_solution)
 
-            logger.info(close_neighbor)
+            close_neighbor = self.problem.find_close_neighbor(random_solution)
 
             if close_neighbor.is_correct():
                 self.set_time(start_time)
@@ -113,6 +113,9 @@ class ClimbingSumOfSubsetSolver(Solver):
 
             if close_neighbor > random_solution:
                 random_solution = close_neighbor
+
+            if verbose:
+                self.log_solution(close_neighbor)
 
         self.set_time(start_time)
 
@@ -153,6 +156,8 @@ class SimulatedAnnealingSumOfSubsetSolver(Solver):
                 self.log_solution(close_neighbor)
                 return close_neighbor
 
+            self.log_solution(close_neighbor)
+
             if close_neighbor > random_solution:
                 random_solution = close_neighbor
             else:
@@ -172,11 +177,75 @@ class SimulatedAnnealingSumOfSubsetSolver(Solver):
         return random_solution
 
 
+class TabuSumOfSubsetSolver(Solver):
+    DEFAULT_LIMIT = 1000000
+    DEFAULT_SIZE_OF_TABU = 1000
+    DEFAULT_TABU_COUNT = 100
+
+    def solve(self, **kwargs):
+        self.log_welcome()
+        verbose = kwargs.get("verbose", False)
+        limit = kwargs.get("limit", self.DEFAULT_LIMIT)
+        size = kwargs.get("size", random.randint(1, len(self.problem.set) // 2))
+        size_of_tabu = kwargs.get("size_of_tabu", self.DEFAULT_SIZE_OF_TABU)
+        tabu_count = kwargs.get("tabu_count", self.DEFAULT_TABU_COUNT)
+
+        logger.info(
+            f"Set size_of_tabu to {size_of_tabu} (default={self.DEFAULT_SIZE_OF_TABU})"
+        )
+        logger.info(
+            f"Set tabu_count to {tabu_count} (default={self.DEFAULT_TABU_COUNT})"
+        )
+        logger.info(f"Set limit to {limit} (default={self.DEFAULT_LIMIT})")
+        logger.info(f"Set verbose to {verbose} (default=False)")
+        logger.info(f"Set size to {size}")
+
+        current_tabu_count = 0
+
+        start_time = time.time()
+
+        random_solution = self.problem.generate_random_solution(size)
+        self.add_attempt()
+
+        tabu_list = []
+
+        if random_solution.is_correct():
+            self.set_time(start_time)
+            self.log_solution(random_solution)
+            return random_solution
+
+        for _ in range(1, limit):
+            self.add_attempt()
+            if tabu_list and current_tabu_count == tabu_count:
+                tabu_list.pop()
+                current_tabu_count = 0
+
+            if len(tabu_list) == size_of_tabu:
+                tabu_list.pop()
+
+            close_neighbor = self.problem.find_close_neighbor(random_solution)
+
+            if close_neighbor.is_correct():
+                self.set_time(start_time)
+                self.log_solution(close_neighbor)
+                return close_neighbor
+
+            if close_neighbor > random_solution:
+                tabu_count += 1
+                tabu_list.append(random_solution)
+                random_solution = close_neighbor
+
+        self.set_time(start_time)
+        self.log_solution(random_solution)
+        return random_solution
+
+
 class SumOfSubsetProblem(Problem):
     solvers = {
         "bruteforce": BruteforceSumOfSubsetSolver,
         "climbing": ClimbingSumOfSubsetSolver,
         "sa": SimulatedAnnealingSumOfSubsetSolver,
+        "tabu": TabuSumOfSubsetSolver,
     }
 
     def __init__(self, data):
@@ -197,23 +266,24 @@ class SumOfSubsetProblem(Problem):
         )
 
     def find_close_neighbor(self, solution: SumOfSubsetSolution):
-        copy_of_data = solution.data.copy()
+        new_subset = solution.subset[:]
 
         first_element, second_element = random.choices(self.set, k=2)
 
         if first_element in solution.subset:
-            copy_of_data.get("subset").remove(first_element)
+            new_subset.remove(first_element)
         else:
-            copy_of_data.get("subset").append(first_element)
+            new_subset.append(first_element)
 
-        if second_element in solution.subset:
+        if second_element in solution.subset and second_element in new_subset:
             if random.randint(1, 2) == 1:
-                copy_of_data.get("subset").remove(second_element)
+                new_subset.remove(second_element)
         else:
             if random.randint(1, 2) == 1:
-                copy_of_data.get("subset").append(second_element)
+                new_subset.append(second_element)
 
-        return SumOfSubsetSolution(copy_of_data, self)
+        return SumOfSubsetSolution({"subset": new_subset}, self)
+
 
 class SumOfSubsetExperiment(Experiment):
     def __init__(self, data=None):
