@@ -1,10 +1,12 @@
 """ module with SumOfSubset related classes """
+import os
 import itertools
 import random
 import time
 import math
 
 import jinja2
+import matplotlib.pyplot as plt
 
 from sum_of_subset_problem import logger
 from sum_of_subset_problem.base import Problem, Solution, Solver, Experiment
@@ -301,13 +303,66 @@ class SumOfSubsetExperiment(Experiment):
         """ returns SumOfSubsetProblem"""
         return SumOfSubsetProblem
 
-    def build_html_report(self, path):
+    @staticmethod
+    def _prepare_bar_plot(bars, values, matplotlib_ax):
+        """ helper method to prepare extended bar plot """
+        for idx, rect in enumerate(bars):
+            print(values)
+            height = rect.get_height()
+            matplotlib_ax.text(
+                rect.get_x() + rect.get_width() / 2,
+                0.5 * height,
+                values[idx],
+                ha="center",
+                va="bottom",
+                rotation=90,
+            )
+
+    def _prepare_plots(self, path):
+        """ helper method to prepare plots """
+        data = self.data.get("report")
+        times_for_problems = {}
+        solvers_for_problems = {}
+
+        for problem_idx, _ in enumerate(data):
+            for report in data[problem_idx]:
+                if not problem_idx in times_for_problems:
+                    times_for_problems[problem_idx] = []
+                if not problem_idx in solvers_for_problems:
+                    solvers_for_problems[problem_idx] = []
+
+                times_for_problems[problem_idx].append(report["report"]["time"])
+                solvers_for_problems[problem_idx].append(report["solver_id"])
+
+        for problem_idx, results in times_for_problems.items():
+            plt.figure()
+
+            _, matplotlib_ax = plt.subplots()
+            y_values = range(len(results))
+
+            bars = plt.bar(y_values, results)
+
+            plt.title(f"Performance for {problem_idx} problem")
+            plt.ylabel("Time (in s)")
+
+            labels = []
+
+            for idx, _ in enumerate(results):
+                labels.append(
+                    f"{round(results[idx], 5)}  (solver {solvers_for_problems.get(problem_idx)[idx] + 1})"
+                )
+
+            self._prepare_bar_plot(bars, labels, matplotlib_ax)
+            plt.savefig(os.path.join(path, f"{problem_idx}.png"))
+
+    def build_html_report(self, path: str):
         """ method to build HTML report """
-        env = jinja2.Environment(
-            loader=jinja2.PackageLoader("sum_of_subset_problem", "static")
-        )
+        logger.info("Building HTML report")
+        env = jinja2.Environment(loader=jinja2.PackageLoader("sum_of_subset_problem", "static"))
 
         template = env.get_template("report.html")
 
-        with open(path, "w") as report_html:
+        with open(os.path.join(path, "report.html"), "w") as report_html:
             report_html.write(template.render(report=self.data))
+
+        self._prepare_plots(path)

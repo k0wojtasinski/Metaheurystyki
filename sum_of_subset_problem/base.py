@@ -181,7 +181,7 @@ class Experiment(abc.ABC, UserDict):
         return self
 
     def _add_to_report(
-            self, idx_of_problem: int, idx_of_solver: int, solver: Solver, solution: Solution,
+        self, idx_of_problem: int, idx_of_solver: int, solver: Solver, solution: Solution,
     ):
         """ method to add report for given solver and problem """
         if idx_of_problem not in self.data["report"]:
