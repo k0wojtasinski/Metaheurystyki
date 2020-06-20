@@ -4,13 +4,14 @@ from collections import UserDict
 import json
 import time
 from typing import List, Union
+from types import FunctionType
 
 from sum_of_subset_problem import logger
 
 
 class Solution(abc.ABC, UserDict):
     """ abstract class representing single solution
-        provides comparison, is_correct and __str__
+        provides comparison, is_optimal and __str__
         goal method needs to be implemented
     """
 
@@ -60,7 +61,7 @@ class Solution(abc.ABC, UserDict):
         return self.goal() == 0
 
     def __str__(self):
-        return f"{self.__class__.__name__} (data={self.data}, goal={self.goal()}, is_correct={self.is_optimal()})"
+        return f"{self.__class__.__name__} (data={self.data}, goal={self.goal()}, is_optimal={self.is_optimal()})"
 
     def __repr__(self):
         return str(self)
@@ -200,6 +201,18 @@ class Experiment(abc.ABC, UserDict):
             self.problem_class(problem_data) for problem_data in self.data.get("problems")
         ]
 
+    @staticmethod
+    def _prepare_lambda_argument(argument):
+        if isinstance(argument, FunctionType):
+            return argument
+
+        if "lambda" in argument:
+            logger.warning(f"Evaluating {argument}. Potentially dangerous")
+            return eval(argument)
+
+        logger.warning(f"Cannot evaluate {argument}. Ignored")
+        return None
+
     def export_to_json(self, file_path: str):
         """ method to export experiment to JSON file """
         with open(file_path, "w") as output_file:
@@ -227,7 +240,14 @@ class Experiment(abc.ABC, UserDict):
                 logger.info(f"Running {solver.__class__.__name__} with params ({params})")
 
                 if params:
-                    solution = solver.solve(**params)
+                    processed_params = params.copy()
+                    for key in processed_params.keys():
+                        if "lambda" in str(processed_params[key]):
+                            print(processed_params[key])
+                            processed_params[key] = self._prepare_lambda_argument(
+                                processed_params[key]
+                            )
+                    solution = solver.solve(**processed_params)
                 else:
                     solution = solver.solve()
 
@@ -247,3 +267,6 @@ class Experiment(abc.ABC, UserDict):
             if isinstance(data, dict):
                 return cls(data)
             raise TypeError("Expected dict")
+
+    def __call__(self):
+        self.run()

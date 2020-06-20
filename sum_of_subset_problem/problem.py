@@ -134,7 +134,7 @@ class SimulatedAnnealingSumOfSubsetSolver(Solver):
         size = kwargs.get("size", random.randint(1, len(self.problem.set) // 2))
 
         logger.info(f"Set limit to {limit} (default={self.DEFAULT_LIMIT})")
-        logger.info("Set verbose to {verbose} (default=False)")
+        logger.info(f"Set verbose to {verbose} (default=False)")
         logger.info(f"Set size to {size}")
 
         start_time = time.time()
@@ -174,7 +174,7 @@ class SimulatedAnnealingSumOfSubsetSolver(Solver):
 
 
 class TabuSumOfSubsetSolver(Solver):
-    """ class which implements TabuSumOfSubsetSolver algorithm for SumOfSubset"""
+    """ class which implements TabuSumOfSubsetSolver algorithm for SumOfSubset """
 
     DEFAULT_LIMIT = 1000000
     DEFAULT_SIZE_OF_TABU = 1000
@@ -211,10 +211,12 @@ class TabuSumOfSubsetSolver(Solver):
         for _ in range(1, limit):
             self.add_attempt()
             if tabu_list and current_tabu_count == tabu_count:
+                logger.info("Removed item from tabu_list")
                 tabu_list.pop()
                 current_tabu_count = 0
 
             if len(tabu_list) == size_of_tabu:
+                logger.info("Removed item from tabu_list")
                 tabu_list.pop()
 
             current_tabu_count += 1
@@ -226,6 +228,7 @@ class TabuSumOfSubsetSolver(Solver):
                 return close_neighbor
 
             if close_neighbor > random_solution:
+                logger.info("Added item to tabu_list")
                 current_tabu_count += 1
                 tabu_list.append(random_solution)
                 random_solution = close_neighbor
