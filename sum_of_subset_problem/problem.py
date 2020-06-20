@@ -337,7 +337,7 @@ class SumOfSubsetExperiment(Experiment):
             plt.figure()
 
             _, matplotlib_ax = plt.subplots()
-            y_values = range(len(results))
+            y_values = [str(n) for n in range(len(results))]
 
             bars = plt.bar(y_values, results)
 

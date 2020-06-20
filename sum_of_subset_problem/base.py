@@ -181,7 +181,7 @@ class Experiment(abc.ABC, UserDict):
         return self
 
     def _add_to_report(
-        self, idx_of_problem: int, idx_of_solver: int, solver: Solver, solution: Solution,
+            self, idx_of_problem: int, idx_of_solver: int, solver: Solver, solution: Solution,
     ):
         """ method to add report for given solver and problem """
         if idx_of_problem not in self.data["report"]:
@@ -243,7 +243,6 @@ class Experiment(abc.ABC, UserDict):
                     processed_params = params.copy()
                     for key in processed_params.keys():
                         if "lambda" in str(processed_params[key]):
-                            print(processed_params[key])
                             processed_params[key] = self._prepare_lambda_argument(
                                 processed_params[key]
                             )
