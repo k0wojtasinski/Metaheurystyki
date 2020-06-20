@@ -1,0 +1,3 @@
+[LOGGING]
+logging-format-style=new
+disable=W1203, R0901, C0301

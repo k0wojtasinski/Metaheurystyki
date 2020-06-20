@@ -1,20 +1,18 @@
+""" module to run some of the features from cli """
 import os
 
 import click
-
-from sum_of_subset_problem import logger
 
 from sum_of_subset_problem.utilities import generate_problem_with_solution
 from sum_of_subset_problem.problem import (
     SumOfSubsetExperiment,
     SumOfSubsetProblem,
-    BruteforceSumOfSubsetSolver,
-    ClimbingSumOfSubsetSolver,
 )
 
 
 @click.group()
 def cli():
+    """ """
     ...
 
 
@@ -25,18 +23,15 @@ def cli():
     help="Method to solve problem (bruteforce, climbing, sa, tabu)",
     prompt="Method to solve problem (bruteforce, climbing, sa, tabu)",
 )
-@click.option("--set", default=10, help="Size of set", prompt="Size of set")
-@click.option("--subset", default=5, help="Size of subset", prompt="Size of subset")
+@click.option("--size_set", default=10, help="Size of set", prompt="Size of set")
+@click.option("--size_subset", default=5, help="Size of subset", prompt="Size of subset")
 @click.option(
-    "--to_file",
-    default=False,
-    help="Path to output JSON file",
-    prompt="Path to output JSON file",
+    "--to_file", default=False, help="Path to output JSON file", prompt="Path to output JSON file",
 )
 @click.option("--verbose", default=False, help="Verbose mode", prompt="Verbose mode")
-def random(method, set, subset, to_file, verbose):
+def random(method, size_set, size_subset, to_file, verbose):
     """ command to solve problem created randomly """
-    problem_with_solution = generate_problem_with_solution(set, subset)
+    problem_with_solution = generate_problem_with_solution(size_set, size_subset)
     problem = SumOfSubsetProblem(problem_with_solution["problem"])
     solver = problem.solvers.get(method)(problem)
     solution = solver.solve(verbose=verbose)
@@ -59,10 +54,7 @@ def random(method, set, subset, to_file, verbose):
     required=True,
 )
 @click.option(
-    "--to_file",
-    default=False,
-    help="Path to output JSON file",
-    prompt="Path to output JSON file",
+    "--to_file", default=False, help="Path to output JSON file", prompt="Path to output JSON file",
 )
 @click.option("--verbose", default=False, help="Verbose mode", prompt="Verbose mode")
 def from_file(method, path, to_file, verbose):
@@ -88,12 +80,10 @@ def from_file(method, path, to_file, verbose):
 @cli.command()
 @click.option("--path", help="Path to experiment", prompt="Path to experiment")
 @click.option(
-    "--to_file",
-    default=False,
-    help="Path to output JSON file",
-    prompt="Path to output JSON file",
+    "--to_file", default=False, help="Path to output JSON file", prompt="Path to output JSON file",
 )
 def run_experiment(path, to_file):
+    """ command to run experiment from json file """
     experiment = SumOfSubsetExperiment.from_json(path)
     experiment.run()
 

@@ -1,37 +1,41 @@
+""" module with SumOfSubset related classes """
 import itertools
 import random
 import time
 import math
-from typing import List, Optional, Union
 
 from sum_of_subset_problem import logger
 from sum_of_subset_problem.base import Problem, Solution, Solver, Experiment
 
 
 class SumOfSubsetSolution(Solution):
+    """ class implementing SumOfSubset solution """
+
     def __init__(self, data, problem):
         super().__init__(data, problem)
         self.subset = data["subset"]
-        self.set = problem.set
-        self.number = problem.number
+        self.set = self.problem.set
+        self.number = self.problem.number
 
     def goal(self) -> int:
         """ returns goal function value for SumOfSubsetSolution """
-        if self.check_correctness(self.set, self.subset, self.number):
+        if self.check_correctness(self.set, self.subset):
             return abs(sum(self.subset) - self.number)
 
         return -1
 
     @staticmethod
-    def check_correctness(set_of_numbers, subset, number) -> bool:
+    def check_correctness(set_of_numbers, subset) -> bool:
         """ check correctness of solution """
         return all([number in set_of_numbers for number in subset])
 
 
 class BruteforceSumOfSubsetSolver(Solver):
+    """ class to solve SumOfSubsetProblem using bruteforce """
+
     def solve(self, **kwargs):
-        """ class to solve SumOfSubsetProblem using bruteforce """
         self.log_welcome()
+
         limit = kwargs.get("limit")
         verbose = kwargs.get("verbose", False)
 
@@ -48,11 +52,9 @@ class BruteforceSumOfSubsetSolver(Solver):
             for combination in itertools.combinations(self.problem.set, i):
                 self.add_attempt()
 
-                solution = SumOfSubsetSolution(
-                    {"subset": combination,}, problem=self.problem
-                )
+                solution = SumOfSubsetSolution({"subset": combination,}, problem=self.problem)
 
-                if solution.is_correct():
+                if solution.is_optimal():
                     self.log_solution(solution, start_time)
                     return solution
 
@@ -67,13 +69,15 @@ class BruteforceSumOfSubsetSolver(Solver):
         self.set_time(start_time)
 
         logger.warning(
-            f"Solution cannot be found (time={self.report['time']}, attempts={self.report['attempts']})"
+            f"Solution cannot be found (time={self.report['time']}, attempts={self.report['attempts']})",
         )
 
         return None
 
 
 class ClimbingSumOfSubsetSolver(Solver):
+    """ class which implements Climbing algorithm for SumOfSubset"""
+
     DEFAULT_LIMIT = 1000000
 
     def solve(self, **kwargs):
@@ -89,11 +93,11 @@ class ClimbingSumOfSubsetSolver(Solver):
         logger.info(f"Set size to {size}")
 
         start_time = time.time()
-        random_solution = self.problem.generate_random_solution(size)
+        random_solution = self.problem.generate_random_solution(size_of_subset=size)
 
         self.add_attempt()
 
-        if random_solution.is_correct():
+        if random_solution.is_optimal():
             self.log_solution(random_solution, start_time)
             return random_solution
 
@@ -102,7 +106,7 @@ class ClimbingSumOfSubsetSolver(Solver):
 
             close_neighbor = self.problem.find_close_neighbor(random_solution)
 
-            if close_neighbor.is_correct():
+            if close_neighbor.is_optimal():
                 self.log_solution(close_neighbor, start_time)
                 return close_neighbor
 
@@ -117,6 +121,8 @@ class ClimbingSumOfSubsetSolver(Solver):
 
 
 class SimulatedAnnealingSumOfSubsetSolver(Solver):
+    """ class which implements SimulatedAnnealing algorithm for SumOfSubset"""
+
     DEFAULT_LIMIT = 1000000
 
     def solve(self, **kwargs):
@@ -128,15 +134,15 @@ class SimulatedAnnealingSumOfSubsetSolver(Solver):
         size = kwargs.get("size", random.randint(1, len(self.problem.set) // 2))
 
         logger.info(f"Set limit to {limit} (default={self.DEFAULT_LIMIT})")
-        logger.info(f"Set verbose to {verbose} (default=False)")
+        logger.info("Set verbose to {verbose} (default=False)")
         logger.info(f"Set size to {size}")
 
         start_time = time.time()
-        random_solution = self.problem.generate_random_solution(size)
+        random_solution = self.problem.generate_random_solution(size_of_subset=size)
 
         self.add_attempt()
 
-        if random_solution.is_correct():
+        if random_solution.is_optimal():
             self.log_solution(random, start_time)
             return random_solution
 
@@ -144,7 +150,7 @@ class SimulatedAnnealingSumOfSubsetSolver(Solver):
             self.add_attempt()
             close_neighbor = self.problem.find_close_neighbor(random_solution)
 
-            if close_neighbor.is_correct():
+            if close_neighbor.is_optimal():
                 self.log_solution(close_neighbor, start_time)
                 return close_neighbor
 
@@ -154,10 +160,7 @@ class SimulatedAnnealingSumOfSubsetSolver(Solver):
                 i = self.report.get("attempts")
                 random_number = random.random()
                 sa_condition = math.exp(
-                    -(
-                        abs(close_neighbor.goal() - random_solution.goal())
-                        / temperature(i)
-                    )
+                    -(abs(close_neighbor.goal() - random_solution.goal()) / temperature(i))
                 )
 
                 if random_number < sa_condition:
@@ -171,24 +174,23 @@ class SimulatedAnnealingSumOfSubsetSolver(Solver):
 
 
 class TabuSumOfSubsetSolver(Solver):
+    """ class which implements TabuSumOfSubsetSolver algorithm for SumOfSubset"""
+
     DEFAULT_LIMIT = 1000000
     DEFAULT_SIZE_OF_TABU = 1000
     DEFAULT_TABU_COUNT = 100
 
     def solve(self, **kwargs):
         self.log_welcome()
+
         verbose = kwargs.get("verbose", False)
         limit = kwargs.get("limit", self.DEFAULT_LIMIT)
         size = kwargs.get("size", random.randint(1, len(self.problem.set) // 2))
         size_of_tabu = kwargs.get("size_of_tabu", self.DEFAULT_SIZE_OF_TABU)
         tabu_count = kwargs.get("tabu_count", self.DEFAULT_TABU_COUNT)
 
-        logger.info(
-            f"Set size_of_tabu to {size_of_tabu} (default={self.DEFAULT_SIZE_OF_TABU})"
-        )
-        logger.info(
-            f"Set tabu_count to {tabu_count} (default={self.DEFAULT_TABU_COUNT})"
-        )
+        logger.info(f"Set size_of_tabu to {size_of_tabu} (default={self.DEFAULT_SIZE_OF_TABU})")
+        logger.info(f"Set tabu_count to {tabu_count} (default={self.DEFAULT_TABU_COUNT})")
         logger.info(f"Set limit to {limit} (default={self.DEFAULT_LIMIT})")
         logger.info(f"Set verbose to {verbose} (default=False)")
         logger.info(f"Set size to {size}")
@@ -197,12 +199,12 @@ class TabuSumOfSubsetSolver(Solver):
 
         start_time = time.time()
 
-        random_solution = self.problem.generate_random_solution(size)
+        random_solution = self.problem.generate_random_solution(size_of_subset=size)
         self.add_attempt()
 
         tabu_list = []
 
-        if random_solution.is_correct():
+        if random_solution.is_optimal():
             self.log_solution(random_solution, start_time)
             return random_solution
 
@@ -219,7 +221,7 @@ class TabuSumOfSubsetSolver(Solver):
 
             close_neighbor = self.problem.find_close_neighbor(random_solution)
 
-            if close_neighbor.is_correct():
+            if close_neighbor.is_optimal():
                 self.log_solution(close_neighbor, start_time)
                 return close_neighbor
 
@@ -236,6 +238,8 @@ class TabuSumOfSubsetSolver(Solver):
 
 
 class SumOfSubsetProblem(Problem):
+    """ class implementing SumOfSubset problem """
+
     solvers = {
         "bruteforce": BruteforceSumOfSubsetSolver,
         "climbing": ClimbingSumOfSubsetSolver,
@@ -248,7 +252,8 @@ class SumOfSubsetProblem(Problem):
         self.set = self.data["set"]
         self.number = self.data["number"]
 
-    def generate_random_solution(self, size_of_subset=None) -> SumOfSubsetSolution:
+    def generate_random_solution(self, **kwargs) -> SumOfSubsetSolution:
+        size_of_subset = kwargs.get("size_of_subset")
         if not size_of_subset or size_of_subset > len(self.set) or size_of_subset < 0:
             size_of_subset = random.randint(1, len(self.set))
 
@@ -260,7 +265,7 @@ class SumOfSubsetProblem(Problem):
             data={"subset": random.sample(self.set, size_of_subset)}, problem=self
         )
 
-    def find_close_neighbor(self, solution: SumOfSubsetSolution):
+    def find_close_neighbor(self, solution: SumOfSubsetSolution) -> SumOfSubsetSolution:
         new_subset = solution.subset[:]
 
         first_element, second_element = random.choices(self.set, k=2)
@@ -281,6 +286,12 @@ class SumOfSubsetProblem(Problem):
 
 
 class SumOfSubsetExperiment(Experiment):
+    """ class implementing SumOfSubset experiment """
+
     def __init__(self, data=None):
         super().__init__(data)
-        self.problem_class = SumOfSubsetProblem
+
+    @property
+    def problem_class(self) -> SumOfSubsetProblem:
+        """ returns SumOfSubsetProblem"""
+        return SumOfSubsetProblem
