@@ -4,6 +4,8 @@ import random
 import time
 import math
 
+import jinja2
+
 from sum_of_subset_problem import logger
 from sum_of_subset_problem.base import Problem, Solution, Solver, Experiment
 
@@ -298,3 +300,14 @@ class SumOfSubsetExperiment(Experiment):
     def problem_class(self) -> SumOfSubsetProblem:
         """ returns SumOfSubsetProblem"""
         return SumOfSubsetProblem
+
+    def build_html_report(self, path):
+        """ method to build HTML report """
+        env = jinja2.Environment(
+            loader=jinja2.PackageLoader("sum_of_subset_problem", "static")
+        )
+
+        template = env.get_template("report.html")
+
+        with open(path, "w") as report_html:
+            report_html.write(template.render(report=self.data))
