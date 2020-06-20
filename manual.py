@@ -80,7 +80,7 @@ def from_file(method, path, to_file, verbose):
 @cli.command()
 @click.option("--path", help="Path to experiment", prompt="Path to experiment")
 @click.option(
-    "--to_file", default=False, help="Path to output JSON file", prompt="Path to output JSON file",
+    "--to_file", default=False, help="Path to output HTML report", prompt="Path to output HTML report",
 )
 def run_experiment(path, to_file):
     """ command to run experiment from json file """
@@ -88,7 +88,7 @@ def run_experiment(path, to_file):
     experiment.run()
 
     if to_file:
-        experiment.export_to_json(to_file)
+        experiment.build_html_report(to_file)
 
 
 if __name__ == "__main__":
