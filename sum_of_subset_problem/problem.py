@@ -307,7 +307,6 @@ class SumOfSubsetExperiment(Experiment):
     def _prepare_bar_plot(bars, values, matplotlib_ax):
         """ helper method to prepare extended bar plot """
         for idx, rect in enumerate(bars):
-            print(values)
             height = rect.get_height()
             matplotlib_ax.text(
                 rect.get_x() + rect.get_width() / 2,
@@ -342,7 +341,7 @@ class SumOfSubsetExperiment(Experiment):
 
             bars = plt.bar(y_values, results)
 
-            plt.title(f"Performance for {problem_idx} problem")
+            plt.title(f"Performance for {problem_idx + 1} problem")
             plt.ylabel("Time (in s)")
 
             labels = []
