@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report</title>
+</head>
+
+<body>
+    <h1>Report</h1>
+    {% for problem_idx in report.report %}
+    <table>
+        <thead>
+            <tr>
+                <th>Solver id</th>
+                <th>Attempts</th>
+                <th>Time</th>
+                <th>Goal</th>
+                <th>Solution</th>
+            </tr>
+        </thead>
+        <tbody>
+            <h2>Problem {{problem_idx + 1}}</h2>
+            {% for solver_idx in report.report[problem_idx] %}
+            <tr>
+                <td>{{solver_idx["solver_id"]}}
+                <td>
+                <td>{{solver_idx["report"]["attempts"]}}
+                <td>
+                <td>{{solver_idx["report"]["time"]}}
+                <td>
+                <td>{{solver_idx["goal"]}}
+                <td>
+                <td>{{solver_idx["solution"]}}
+                <td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endfor %}
+    <h1>Problems</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Problem id</th>
+                <th>Set</th>
+                <th>Number</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for problem in report.problems %}
+            <tr>
+                <td>0</td>
+                <td>{{problem.set}}</td>
+                <td>{{problem.number}}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <h1>Solvers</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Solver id</th>
+                    <th>Solver name</th>
+                    <th>Params</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for solver in report.solvers %}
+                <tr>
+                    <td>0</td>
+                    <td>{{solver.solver_name}}</td>
+                    <td>{{solver.params}}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+</body>
+</html>

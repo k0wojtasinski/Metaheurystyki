@@ -221,7 +221,7 @@ class Experiment(abc.ABC, UserDict):
     def _sort_report(self):
         """ method to sort report by solutions quality and taken time """
         for problem_idx in self.data.get("report").keys():
-            self.data.get("report")[problem_idx].sort(
+            self.data.get("report").get(problem_idx).sort(
                 key=lambda report: (
                     report.get("report").get("goal"),
                     report.get("report").get("time"),
