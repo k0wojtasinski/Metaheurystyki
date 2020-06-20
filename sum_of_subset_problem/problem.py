@@ -53,19 +53,16 @@ class BruteforceSumOfSubsetSolver(Solver):
                 )
 
                 if solution.is_correct():
-                    self.set_time(start_time)
-                    self.log_solution(solution)
-                    self.solutions.append(solution)
+                    self.log_solution(solution, start_time)
                     return solution
 
                 if limit and self.report["attempts"] == limit:
-                    self.set_time(start_time)
                     logger.warning(f"Runned out of tries (limit={limit})")
-                    self.log_solution(solution)
+                    self.log_solution(solution, start_time)
                     return solution
 
                 if verbose:
-                    self.log_solution(solution)
+                    self.log_solution(solution, start_time)
 
         self.set_time(start_time)
 
@@ -97,8 +94,7 @@ class ClimbingSumOfSubsetSolver(Solver):
         self.add_attempt()
 
         if random_solution.is_correct():
-            self.set_time(start_time)
-            self.log_solution(random_solution)
+            self.log_solution(random_solution, start_time)
             return random_solution
 
         for _ in range(1, limit):
@@ -107,19 +103,16 @@ class ClimbingSumOfSubsetSolver(Solver):
             close_neighbor = self.problem.find_close_neighbor(random_solution)
 
             if close_neighbor.is_correct():
-                self.set_time(start_time)
-                self.log_solution(close_neighbor)
+                self.log_solution(close_neighbor, start_time)
                 return close_neighbor
 
             if close_neighbor > random_solution:
                 random_solution = close_neighbor
 
             if verbose:
-                self.log_solution(close_neighbor)
+                self.log_solution(close_neighbor, start_time)
 
-        self.set_time(start_time)
-
-        self.log_solution(random_solution)
+        self.log_solution(random_solution, start_time)
         return random_solution
 
 
@@ -144,7 +137,7 @@ class SimulatedAnnealingSumOfSubsetSolver(Solver):
         self.add_attempt()
 
         if random_solution.is_correct():
-            self.set_time(start_time)
+            self.log_solution(random, start_time)
             return random_solution
 
         for _ in range(1, limit):
@@ -152,11 +145,8 @@ class SimulatedAnnealingSumOfSubsetSolver(Solver):
             close_neighbor = self.problem.find_close_neighbor(random_solution)
 
             if close_neighbor.is_correct():
-                self.set_time(start_time)
-                self.log_solution(close_neighbor)
+                self.log_solution(close_neighbor, start_time)
                 return close_neighbor
-
-            self.log_solution(close_neighbor)
 
             if close_neighbor > random_solution:
                 random_solution = close_neighbor
@@ -173,7 +163,10 @@ class SimulatedAnnealingSumOfSubsetSolver(Solver):
                 if random_number < sa_condition:
                     random_solution = close_neighbor
 
-        self.log_solution(random_solution)
+            if verbose:
+                self.log_solution(close_neighbor, start_time)
+
+        self.log_solution(random_solution, start_time)
         return random_solution
 
 
@@ -210,8 +203,7 @@ class TabuSumOfSubsetSolver(Solver):
         tabu_list = []
 
         if random_solution.is_correct():
-            self.set_time(start_time)
-            self.log_solution(random_solution)
+            self.log_solution(random_solution, start_time)
             return random_solution
 
         for _ in range(1, limit):
@@ -223,20 +215,23 @@ class TabuSumOfSubsetSolver(Solver):
             if len(tabu_list) == size_of_tabu:
                 tabu_list.pop()
 
+            current_tabu_count += 1
+
             close_neighbor = self.problem.find_close_neighbor(random_solution)
 
             if close_neighbor.is_correct():
-                self.set_time(start_time)
-                self.log_solution(close_neighbor)
+                self.log_solution(close_neighbor, start_time)
                 return close_neighbor
 
             if close_neighbor > random_solution:
-                tabu_count += 1
+                current_tabu_count += 1
                 tabu_list.append(random_solution)
                 random_solution = close_neighbor
 
-        self.set_time(start_time)
-        self.log_solution(random_solution)
+            if verbose:
+                self.log_solution(close_neighbor, start_time)
+
+        self.log_solution(random_solution, start_time)
         return random_solution
 
 

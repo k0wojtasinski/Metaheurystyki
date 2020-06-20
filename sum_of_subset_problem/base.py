@@ -118,7 +118,8 @@ class Solver(abc.ABC):
     def set_time(self, start_time):
         self.report["time"] = time.time() - start_time
 
-    def log_solution(self, solution):
+    def log_solution(self, solution, start_time):
+        self.set_time(start_time)
         logger.info(
             f"Found solution ({solution}) (time={self.report['time']}, attempts={self.report['attempts']})"
         )
@@ -126,33 +127,6 @@ class Solver(abc.ABC):
     def log_welcome(self):
         logger.info(f"Running {self.__class__.__name__}")
         logger.info(f"Trying to solve {self.problem}")
-
-    @staticmethod
-    def export_solutions_to_json(solutions: list, file_path):
-        """ static method to save data of given solutions
-            to JSON file
-        """
-        with open(file_path, "w") as output_file:
-            output_file.write(json.dumps(solutions, indent="  "))
-
-    def export_all_solutions_to_json(self, file_path):
-        """ method to export all solutions to JSON file """
-        solutions = [solution.data for solution in self.solutions]
-        self.export_solutions_to_json(solutions, file_path)
-
-    def export_correct_solutions_to_json(self, file_path):
-        """ method to export all correct solutions to JSON file """
-        solutions = [
-            solution.data for solution in self.solutions if solution.is_correct()
-        ]
-        self.export_solutions_to_json(solutions, file_path)
-
-    def export_incorrect_solutions_to_json(self, file_path):
-        """ method to export all incorrect solutions to JSON file """
-        solutions = [
-            solution.data for solution in self.solutions if not solution.is_correct()
-        ]
-        self.export_solutions_to_json(solutions, file_path)
 
 
 class Experiment(abc.ABC, UserDict):
@@ -232,6 +206,9 @@ class Experiment(abc.ABC, UserDict):
                 self._add_to_report(idx_of_problem, idx_of_solver, solver, solution)
 
         self._sort_report()
+        logger.info(
+            f"{self.__class__.__name__} result:\n{json.dumps(self.data, indent=4)}"
+        )
 
     @classmethod
     def from_json(cls, file_path: str) -> "Experiment":

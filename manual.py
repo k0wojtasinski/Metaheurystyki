@@ -2,8 +2,11 @@ import os
 
 import click
 
+from sum_of_subset_problem import logger
+
 from sum_of_subset_problem.utilities import generate_problem_with_solution
 from sum_of_subset_problem.problem import (
+    SumOfSubsetExperiment,
     SumOfSubsetProblem,
     BruteforceSumOfSubsetSolver,
     ClimbingSumOfSubsetSolver,
@@ -19,8 +22,8 @@ def cli():
 @click.option(
     "--method",
     default="bruteforce",
-    help="Method to solve problem (bruteforce, climbing, sa)",
-    prompt="Method to solve problem (bruteforce, climbing, sa)",
+    help="Method to solve problem (bruteforce, climbing, sa, tabu)",
+    prompt="Method to solve problem (bruteforce, climbing, sa, tabu)",
 )
 @click.option("--set", default=10, help="Size of set", prompt="Size of set")
 @click.option("--subset", default=5, help="Size of subset", prompt="Size of subset")
@@ -46,8 +49,8 @@ def random(method, set, subset, to_file, verbose):
 @click.option(
     "--method",
     default="bruteforce",
-    help="Method to solve problem (bruteforce, climbing, sa)",
-    prompt="Method to solve problem (bruteforce, climbing, sa)",
+    help="Method to solve problem (bruteforce, climbing, sa, tabu)",
+    prompt="Method to solve problem (bruteforce, climbing, sa, tabu)",
 )
 @click.option(
     "--path",
@@ -80,6 +83,22 @@ def from_file(method, path, to_file, verbose):
 
         if to_file:
             solution.export_json(os.path.join(to_file, "from_file.json"))
+
+
+@cli.command()
+@click.option("--path", help="Path to experiment", prompt="Path to experiment")
+@click.option(
+    "--to_file",
+    default=False,
+    help="Path to output JSON file",
+    prompt="Path to output JSON file",
+)
+def run_experiment(path, to_file):
+    experiment = SumOfSubsetExperiment.from_json(path)
+    experiment.run()
+
+    if to_file:
+        experiment.export_to_json(to_file)
 
 
 if __name__ == "__main__":
