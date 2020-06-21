@@ -236,7 +236,6 @@ class TabuSumOfSubsetSolver(Solver):
 
             if close_neighbor > random_solution and close_neighbor not in tabu_list:
                 logger.info("Added item to tabu_list")
-                current_tabu_count += 1
                 tabu_list.append(random_solution)
                 random_solution = close_neighbor
 
