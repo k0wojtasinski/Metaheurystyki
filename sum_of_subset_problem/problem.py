@@ -331,7 +331,8 @@ class SumOfSubsetExperiment(Experiment):
                     solvers_for_problems[problem_idx] = []
 
                 times_for_problems[problem_idx].append(report["report"]["time"])
-                solvers_for_problems[problem_idx].append(report["solver_id"])
+                solvers_for_problems[problem_idx].append(f"{report['solver_id'] + 1}: {self.data['solvers'][report.get('solver_id')].get('solver_name')}")
+
 
         for problem_idx, results in times_for_problems.items():
             plt.figure()
@@ -348,7 +349,7 @@ class SumOfSubsetExperiment(Experiment):
 
             for idx, _ in enumerate(results):
                 labels.append(
-                    f"{round(results[idx], 5)}  (solver {solvers_for_problems.get(problem_idx)[idx] + 1})"
+                    f"{round(results[idx], 5)}  (solver {solvers_for_problems.get(problem_idx)[idx]})"
                 )
 
             self._prepare_bar_plot(bars, labels, matplotlib_ax)
