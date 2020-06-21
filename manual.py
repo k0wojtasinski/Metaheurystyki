@@ -90,6 +90,35 @@ def run_experiment(path, to_file):
     if to_file:
         experiment.build_html_report(to_file)
 
+@cli.command()
+@click.option("--size", default=5, help="Size of problems", prompt="Size of problems")
+@click.option("--size_set", default=10, help="Size of set", prompt="Size of set")
+@click.option("--size_subset", default=5, help="Size of subset", prompt="Size of subset")
+@click.option(
+    "--to_file", default=False, help="Path to output JSON file", prompt="Path to output JSON file",
+)
+@click.option(
+    "--report", default=False, help="Path to output HTML report", prompt="Path to output HTML report",
+)
+def run_random_experiment(size, size_set, size_subset, to_file, report):
+    """ command to run experiment from json file """
+
+    experiment = SumOfSubsetExperiment()
+
+    for _ in range(size):
+        problem_with_solution = generate_problem_with_solution(size_set, size_subset)
+        problem = SumOfSubsetProblem(problem_with_solution["problem"])
+        experiment.add_problem(problem)
+
+    experiment.add_solver("bruteforce").add_solver("climbing").add_solver("sa").add_solver("tabu")
+
+    experiment.run()
+
+    if to_file:
+        experiment.export_to_json(to_file)
+
+    if report:
+        experiment.build_html_report(report)
 
 if __name__ == "__main__":
     cli()
