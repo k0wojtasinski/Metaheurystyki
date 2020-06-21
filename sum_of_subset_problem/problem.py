@@ -21,6 +21,12 @@ class SumOfSubsetSolution(Solution):
         self.set = self.problem.set
         self.number = self.problem.number
 
+    def __eq__(self, solution: "SumOfSubsetSolution"):
+        if isinstance(solution, SumOfSubsetSolution):
+            return self.data.get("subset") == solution.data.get("subset")
+
+        return False
+
     def goal(self) -> int:
         """ returns goal function value for SumOfSubsetSolution """
         if self.check_correctness(self.set, self.subset):
